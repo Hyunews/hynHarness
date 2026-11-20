@@ -2,17 +2,19 @@
   "project": "{{project}}",
   "privateRoot": "%USERPROFILE%\\.harness-private",
   "codexPath": "",
-  "codexModel": "",
+  "codexModel": "gpt-5.5",
   "protected": [
     ".claude/**",
     ".codex/**",
-    ".harness/templates/**",
-    ".harness/config.json",
-    ".harness/WORKFLOW.md",
-    ".harness/tasks/*/plan.md",
+    ".harness/**",
+    ".docs/**",
     "AGENTS.md",
+    "README.md",
     "CLAUDE.md",
     ".gitignore"
+  ],
+  "codexWritable": [
+    ".harness/tasks/*/review.md"
   ],
   "claudeHumanOnly": [
     ".claude/settings.json",
@@ -28,6 +30,11 @@
   "codexForbiddenTokens": [
     "harness-private",
     "checks.md"
+  ],
+  "noSecretPaths": [
+    ".harness/tasks/**",
+    ".harness/context.md",
+    ".docs/**"
   ],
   "reviewerBashDeny": [
     "Set-Content|Add-Content|Out-File|New-Item|Remove-Item|Move-Item|Copy-Item|Rename-Item",

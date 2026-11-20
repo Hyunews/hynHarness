@@ -12,6 +12,12 @@ deny  | claude | Edit         | -        | {ROOT}\.claude\hooks\guard-tests.txt
 deny  | claude | Edit         | -        | .codex/hooks.json
 allow | claude | Write        | -        | {PRIVATE}\proj\001\checks.md
 allow | claude | Bash         | -        | echo x > out.txt
+allow | claude | Edit         | -        | .docs/00_도메인.md
+allow | claude | Write        | -        | .harness/context.md ::: 진행 중: 001 review 단계
+deny  | claude | Write        | -        | .harness/tasks/001/plan.md ::: 비공개 checks.md 참고
+deny  | claude | Write        | -        | .harness/context.md ::: 기준은 {PRIVATE}\proj 에 있음
+deny  | claude | Edit         | -        | .docs/00_도메인.md ::: see harness-private
+allow | claude | Edit         | -        | .harness/WORKFLOW.md ::: checks.md 위치 설명
 
 # --- Claude reviewer (Sonnet) ---
 allow | claude | Edit         | reviewer | .harness/tasks/001/review.md
@@ -23,6 +29,10 @@ deny  | claude | Edit         | reviewer | AGENTS.md
 deny  | claude | Write        | reviewer | {PRIVATE}\proj\001\checks.md
 deny  | claude | Write        | reviewer | C:\Temp\x.txt
 deny  | claude | NotebookEdit | reviewer | nb.ipynb
+deny  | claude | Edit         | reviewer | .docs/00_도메인.md
+deny  | claude | Edit         | reviewer | .harness/context.md
+allow | claude | Edit         | reviewer | .harness/tasks/001/review.md ::: K2 FAIL - 빈 입력에서 500
+deny  | claude | Edit         | reviewer | .harness/tasks/001/review.md ::: checks.md K2 FAIL
 allow | claude | Bash         | reviewer | git diff HEAD~1 --stat
 allow | claude | Bash         | reviewer | git add .harness/tasks/001/review.md && git commit -m "review(001): r1"
 allow | claude | PowerShell   | reviewer | npm test 2>&1 | Select-Object -Last 20
@@ -51,8 +61,14 @@ deny  | codex  | apply_patch  | -        | .harness/config.json
 deny  | codex  | apply_patch  | -        | .codex/rules/harness.rules
 deny  | codex  | apply_patch  | -        | tests/locked/test_core.py
 deny  | codex  | apply_patch  | -        | ../outside.txt
+deny  | codex  | apply_patch  | -        | .harness/context.md
+deny  | codex  | apply_patch  | -        | .harness/tasks/001/final.md
+deny  | codex  | apply_patch  | -        | .harness/tasks/001/notes.md
+deny  | codex  | apply_patch  | -        | .docs/00_도메인.md
+deny  | codex  | apply_patch  | -        | .docs/00_도메인/00-01_개요.md
 allow | codex  | Bash         | -        | npm test
 allow | codex  | Bash         | -        | cat .harness/tasks/001/plan.md
 deny  | codex  | Bash         | -        | cat {PRIVATE}\proj\001\checks.md
 deny  | codex  | Bash         | -        | type %USERPROFILE%\.harness-private\proj\001\checks.md
 deny  | codex  | Bash         | -        | Get-ChildItem -Recurse -Filter checks.md ~
+deny  | codex  | apply_patch  | -        | README.md

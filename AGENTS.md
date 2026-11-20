@@ -17,12 +17,19 @@
 plan(Opus) → impl(Codex) → review(Sonnet) → fix(Codex) ⇄ verify(Sonnet) → finalize(Opus)
 상세 절차와 종료 규칙: `.harness/WORKFLOW.md`
 
-과제 파일: `.harness/tasks/<id>/plan.md`, `.harness/tasks/<id>/review.md`
+## 문서 위치
+
+| 경로 | 내용 | 쓰기 |
+|---|---|---|
+| `.docs/` | 도메인 정본(업무 규칙·용어·데이터). `00_INDEX.md`부터 | Opus·사람 |
+| `.harness/tasks/<id>/plan.md` | 과제 요구(할 일·범위 밖·완료 기준·참고 문서) | Opus |
+| `.harness/tasks/<id>/review.md` | 리뷰·이슈 | Sonnet (Codex는 아래 3번만) |
+| `.harness/` 나머지 | 하네스 운영(흐름·템플릿·설정·현재 상태) | Opus |
 
 ## Codex 규칙
 
-1. 구현 근거는 `.harness/tasks/<id>/plan.md` 하나뿐이다. "범위 밖"에 적힌 것은 바꾸지 않는다.
-2. 다음 경로는 수정하지 않는다: `.claude/`, `.codex/`, `.harness/` (단, 아래 review.md 예외), `AGENTS.md`, `CLAUDE.md`, plan.md의 "잠금 테스트" 목록에 있는 파일.
+1. 구현 근거는 `.harness/tasks/<id>/plan.md`와 그 "참고 문서"에 적힌 `.docs/` 문서다. "범위 밖"에 적힌 것은 바꾸지 않는다. 도메인 규칙과 plan.md가 충돌하면 임의로 고르지 말고 질문으로 남긴다.
+2. 다음 경로는 수정하지 않는다: `.claude/`, `.codex/`, `.harness/` (단, 아래 review.md 예외), `.docs/`, `AGENTS.md`, `CLAUDE.md`, plan.md의 "잠금 테스트" 목록에 있는 파일.
 3. review.md에서 할 수 있는 일은 두 가지뿐이다.
    - 이슈 제목 줄의 상태를 `OPEN` 또는 `REOPEN` → `FIXED`로 바꾼다.
    - 해당 이슈 블록의 `- 수정(rN):` 줄을 채우거나(없으면 추가) `<무엇을 어떻게 고쳤는지>`를 쓴다.

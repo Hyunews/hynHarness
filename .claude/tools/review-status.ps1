@@ -26,16 +26,29 @@ foreach ($line in (Read-Utf8 $reviewPath) -split "`r?`n") {
         continue
     }
     if ($line -match '^### (I-\d+) \[(BLOCKER|MAJOR|MINOR)\] (OPEN|FIXED|VERIFIED|REOPEN)\s*$') {
-        $cur = New-Object psobject -Property @{ Id = $Matches[1]; Sev = $Matches[2]; Status = $Matches[3]; Reopens = 0 }
+        $cur = New-Object psobject -Property @{ Id = $Matches[1]; Sev = $Matches[2]; Status = $Matches[3]; Reopens = 0; ReopenRounds = @() }
         $issues += $cur
         continue
     }
-    if ($cur -and $line -match '^- 확인.*REOPEN') { $cur.Reopens++ }
+    if ($cur -and $line -match '^- 확인(?:\(r(\d+)\))?.*REOPEN') {
+        $n = 0; if ($Matches[1]) { $n = [int]$Matches[1] }
+        $cur.ReopenRounds += $n
+    }
 }
 
-$fixRounds = @(Find-TaskCommits 'fix' $Id).Count
+# Rounds are counted only since the LATEST plan(<id>) commit, so a plan revision after ESCALATE resets the counters.
+$plans = @(Find-TaskCommits 'plan' $Id)
+if ($plans.Count -eq 0) { Write-Output "no plan($Id) commit"; exit 1 }
+$latestPlan = $plans[0].Hash
+$since = "$latestPlan..HEAD"
+$fixAll = @(Find-TaskCommits 'fix' $Id).Count
+$fixRounds = @(Find-TaskCommits 'fix' $Id $since).Count
+$baseRound = $fixAll - $fixRounds          # rounds before the latest plan revision
+foreach ($i in $issues) { $i.Reopens = @($i.ReopenRounds | Where-Object { $_ -eq 0 -or $_ -gt $baseRound }).Count }
+$implCount = @(Find-TaskCommits 'impl' $Id).Count
+$reviewsSince = @(Find-TaskCommits 'review' $Id $since).Count
 
-Write-Output "task: $Id   fix rounds: $fixRounds"
+Write-Output "task: $Id   fix rounds since latest plan: $fixRounds (total $fixAll)"
 Write-Output 'criteria:'
 if ($criteria.Count -eq 0) { Write-Output '  (none filled)' }
 foreach ($c in $criteria) { $v = $c.Verdict; if (-not $v) { $v = '(empty)' }; Write-Output ("  {0,-4} {1}" -f $c.Id, $v) }
@@ -50,6 +63,12 @@ $tooMany = @($issues | Where-Object { $_.Reopens -gt 2 })
 $needFix = @($issues | Where-Object { $_.Status -eq 'OPEN' -or $_.Status -eq 'REOPEN' })
 $needVerify = @($issues | Where-Object { $_.Status -eq 'FIXED' })
 
+if ($implCount -eq 0) {
+    Write-Output 'RESULT: CONTINUE  - next: run-codex.ps1 -Mode impl (no implementation yet)'; exit 10
+}
+if ($reviewsSince -eq 0) {
+    Write-Output 'RESULT: CONTINUE  - next: /review (no review since the latest plan commit; re-judge criteria against the current plan)'; exit 10
+}
 if ($unknown.Count -gt 0) {
     Write-Output ("RESULT: HUMAN  - {0} criterion/criteria '{1}': {2}" -f $unknown.Count, $UNKNOWN, (($unknown | ForEach-Object { $_.Id }) -join ', ')); exit 20
 }
@@ -57,7 +76,7 @@ if ($allPass -and $majorOpen.Count -eq 0) {
     Write-Output 'RESULT: DONE  - all criteria PASS, BLOCKER/MAJOR all VERIFIED -> /finalize'; exit 0
 }
 if ($tooMany.Count -gt 0 -or $fixRounds -ge 3) {
-    Write-Output ("RESULT: ESCALATE  - reopen>2: [{0}], fix rounds: {1} -> plan.md likely ambiguous, back to Opus" -f (($tooMany | ForEach-Object { $_.Id }) -join ', '), $fixRounds); exit 30
+    Write-Output ("RESULT: ESCALATE  - reopen>2: [{0}], fix rounds: {1} -> plan.md likely ambiguous, back to Opus (revise plan.md + plan commit resets the counters)" -f (($tooMany | ForEach-Object { $_.Id }) -join ', '), $fixRounds); exit 30
 }
 $filled = @($criteria | Where-Object { $_.Verdict })
 $next = if ($filled.Count -eq 0) { '/review' } elseif ($needVerify.Count -gt 0) { '/verify' } elseif ($needFix.Count -gt 0) { 'run-codex.ps1 -Mode fix' } else { 'reviewer: criteria not all PASS but no open issue - register issues for FAIL items' }

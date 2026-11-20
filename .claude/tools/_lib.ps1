@@ -106,6 +106,31 @@ function Find-GlobMatch([string]$Rel, $Globs) {
     return $null
 }
 
+# Quote one argument for a Windows command line (CommandLineToArgvW rules).
+# PowerShell 5.1 does not escape embedded quotes for native programs, so build the line ourselves.
+function ConvertTo-WinArg([string]$a) {
+    if ($a -and $a -notmatch '[\s"]') { return $a }
+    $sb = New-Object Text.StringBuilder
+    [void]$sb.Append('"')
+    $bs = 0
+    foreach ($ch in $a.ToCharArray()) {
+        if ($ch -eq '\') { $bs++; continue }
+        if ($ch -eq '"') { [void]$sb.Append('\' * (2 * $bs + 1)); [void]$sb.Append('"') }
+        else { if ($bs) { [void]$sb.Append('\' * $bs) }; [void]$sb.Append($ch) }
+        $bs = 0
+    }
+    if ($bs) { [void]$sb.Append('\' * (2 * $bs)) }
+    [void]$sb.Append('"')
+    return $sb.ToString()
+}
+
+# Base commit of a task = the OLDEST plan(<id>) commit (the state before Codex touched anything).
+function Get-TaskBase([string]$Id) {
+    $plans = @(Find-TaskCommits 'plan' $Id)
+    if ($plans.Count -eq 0) { return $null }
+    return $plans[$plans.Count - 1].Hash
+}
+
 function Invoke-Git {
     # Runs git with UTF-8 output; returns stdout lines. Throws on failure.
     # Simple function (no param block) so git flags like -E are not taken as PowerShell parameters.
@@ -117,10 +142,11 @@ function Invoke-Git {
     return @($out | ForEach-Object { [string]$_ })
 }
 
-function Find-TaskCommits([string]$Prefix, [string]$Id) {
-    # Newest first. Returns objects {Hash, Subject}.
+function Find-TaskCommits([string]$Prefix, [string]$Id, [string]$Range) {
+    # Newest first. Returns objects {Hash, Subject}. -Range e.g. "<hash>..HEAD" limits the search.
     $pat = '^' + $Prefix + '\(' + [regex]::Escape($Id) + '\)'
-    $lines = Invoke-Git log '--format=%H%x09%s' -E "--grep=$pat"
+    if ($Range) { $lines = Invoke-Git log '--format=%H%x09%s' -E "--grep=$pat" $Range }
+    else { $lines = Invoke-Git log '--format=%H%x09%s' -E "--grep=$pat" }
     $res = @()
     foreach ($l in $lines) {
         if (-not $l) { continue }

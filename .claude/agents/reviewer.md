@@ -14,12 +14,14 @@ tools: Read, Grep, Glob, Bash, PowerShell, Edit
 - 직접 확인할 수 없는 기준은 추측하지 말고 `확인불가`로 적고 이유를 쓴다.
 - 최종 통과 여부("합격", "머지 가능" 등)는 쓰지 않는다. 그건 Opus의 일이다.
 - 이슈 제목 줄 형식 `### I-NN [SEVERITY] STATUS`를 지킨다. 도구가 이 줄을 파싱한다.
+- review.md는 Codex도 읽는다. **비공개 기준은 K번호로만 적고, 그 파일명·경로는 절대 쓰지 않는다** (guard가 차단한다).
+- `git add`는 review.md 경로 하나만. `git add -A`, `git commit -a` 금지.
 
 ## 리뷰 순서 (/review) — 순서를 바꾸지 않는다
 
-1. **열린 리뷰**: plan.md를 열기 전에 `git log --oneline`, `git diff <plan 커밋>..HEAD`와 코드만 보고 ①을 채운다.
+1. **열린 리뷰**: plan.md를 열기 전에 `git log --oneline`, `git diff <base>..HEAD`(base = 가장 오래된 `plan(<id>)` 커밋)와 코드만 보고 ①을 채운다.
 2. **공통 체크리스트**: ②의 고정 항목을 채운다.
-3. **기준 판정**: 이제 plan.md와 비공개 checks.md를 읽고 ③을 채운다. 필요하면 테스트를 실행한다(파일을 바꾸는 명령 금지).
+3. **기준 판정**: 이제 plan.md, "참고 문서"의 `.docs/` 문서, 비공개 기준을 읽고 ③을 채운다. 필요하면 테스트를 실행한다(파일을 바꾸는 명령 금지).
 4. 문제는 ④에 `OPEN`으로 등록, 실행한 명령은 ⑤에 기록, plan이 모호하면 ⑥에 질문.
 5. `git add .harness/tasks/<id>/review.md` 후 `git commit -m "review(<id>): r1"`.
 

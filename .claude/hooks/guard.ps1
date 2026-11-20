@@ -18,6 +18,18 @@ function Get-PatchPaths([string]$Text) {
     return $paths
 }
 
+# New text an Edit/Write/MultiEdit/NotebookEdit call would put into the file.
+function Get-WriteText($ToolInput) {
+    $parts = @()
+    foreach ($k in 'content', 'new_string', 'new_source') {
+        if ($ToolInput.PSObject.Properties[$k] -and $ToolInput.$k) { $parts += [string]$ToolInput.$k }
+    }
+    if ($ToolInput.PSObject.Properties['edits']) {
+        foreach ($e in @($ToolInput.edits)) { if ($e.PSObject.Properties['new_string']) { $parts += [string]$e.new_string } }
+    }
+    return ($parts -join "`n")
+}
+
 # Returns $null (allow) or a deny reason.
 function Get-GuardDecision {
     param($Agent, $ToolName, $AgentType, $ToolInput, $Root, $Cfg)
@@ -44,6 +56,15 @@ function Get-GuardDecision {
             }
             $g = Find-GlobMatch $rel $Cfg.claudeHumanOnly
             if ($g) { return "human-only file ($g): $rel" }
+            # files Codex reads (tasks, context, docs) must not name the private checks
+            if (Find-GlobMatch $rel $Cfg.noSecretPaths) {
+                $text = Get-WriteText $ToolInput
+                foreach ($t in @($Cfg.codexForbiddenTokens) + @($privBase)) {
+                    if ($t -and $text.IndexOf($t, [StringComparison]::OrdinalIgnoreCase) -ge 0) {
+                        return "Codex-visible file must not mention '$t' (write 'K-number' instead): $rel"
+                    }
+                }
+            }
             if ($isReviewer) {
                 if (Find-GlobMatch $rel $Cfg.reviewerWritable) { return $null }
                 return "reviewer may only edit review.md: $rel"
@@ -85,6 +106,7 @@ function Get-GuardDecision {
         foreach ($p in (Get-PatchPaths $patchText)) {
             $rel = Get-RelPath $Root $p
             if ($null -eq $rel) { return "patch outside the project: $p" }
+            if (Find-GlobMatch $rel $Cfg.codexWritable) { continue }   # review.md: line rules checked after commit
             $g = Find-GlobMatch $rel $Cfg.protected
             if ($g) { return "protected path ($g): $rel" }
             $g = Find-GlobMatch $rel $Cfg.lockedTests
@@ -114,7 +136,12 @@ if ($SelfTest) {
         $target = $target.Replace('{PRIVATE}', $privBase).Replace('{ROOT}', $root)
         if ($atype -eq '-') { $atype = $null }
         $ti = New-Object psobject
-        if ($WriteTools -contains $tool) { $ti | Add-Member file_path $target }
+        if ($WriteTools -contains $tool) {
+            # "path ::: text" -> also set the written content
+            $sp = $target -split '\s*:::\s*', 2
+            $ti | Add-Member file_path $sp[0]
+            if ($sp.Count -gt 1) { $ti | Add-Member content $sp[1] }
+        }
         elseif ($tool -eq 'apply_patch') { $ti | Add-Member command ("*** Begin Patch`n*** Update File: $target`n@@`n-a`n+b`n*** End Patch") }
         else { $ti | Add-Member command $target }
         $n++

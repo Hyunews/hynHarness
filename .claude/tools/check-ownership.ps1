@@ -38,11 +38,15 @@ foreach ($t in $targets) {
     Write-Output "[$short] $($t.Subject)"
     $files = @(Invoke-Git show '--format=' --name-only $t.Hash | Where-Object { $_ })
     foreach ($f in $files) {
-        $g = Find-GlobMatch $f $cfg.protected
-        if ($g) { [void]$violations.Add("[$short] protected path ($g): $f"); continue }
-        $g = Find-GlobMatch $f $cfg.lockedTests
-        if ($g) { [void]$violations.Add("[$short] locked test ($g): $f"); continue }
-        if (Find-GlobMatch $f @('.harness/tasks/*/review.md')) {
+        # codexWritable (review.md) is an exception inside the protected .harness/** -> line-level check
+        if (-not (Find-GlobMatch $f $cfg.codexWritable)) {
+            $g = Find-GlobMatch $f $cfg.protected
+            if ($g) { [void]$violations.Add("[$short] protected path ($g): $f"); continue }
+            $g = Find-GlobMatch $f $cfg.lockedTests
+            if ($g) { [void]$violations.Add("[$short] locked test ($g): $f"); continue }
+        }
+        if (Find-GlobMatch $f $cfg.codexWritable) {
+            if (-not ($f -match '/review\.md$')) { continue }
             $diff = Invoke-Git show '--format=' -U0 $t.Hash -- $f
             $removed = New-Object System.Collections.ArrayList
             $added = New-Object System.Collections.ArrayList

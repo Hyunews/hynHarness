@@ -12,7 +12,7 @@ Write-Output "harness root: $root"
 
 Write-Output '[files]'
 $required = @(
-    'AGENTS.md', 'CLAUDE.md', '.gitignore',
+    'AGENTS.md', 'CLAUDE.md', 'README.md', '.gitignore',
     '.harness/WORKFLOW.md', '.harness/config.json',
     '.harness/templates/plan.md', '.harness/templates/checks.md', '.harness/templates/review.md',
     '.claude/settings.json', '.claude/agents/reviewer.md',
@@ -21,7 +21,8 @@ $required = @(
     '.claude/hooks/guard.ps1', '.claude/hooks/guard-tests.txt',
     '.claude/tools/_lib.ps1', '.claude/tools/new-task.ps1', '.claude/tools/run-codex.ps1',
     '.claude/tools/check-ownership.ps1', '.claude/tools/review-status.ps1', '.claude/tools/check-harness.ps1',
-    '.codex/hooks.json', '.codex/rules/harness.rules'
+    '.codex/hooks.json', '.codex/rules/harness.rules',
+    '.claude/rules/40-docs.md', '.harness/context.md', '.docs/00_INDEX.md'
 )
 foreach ($f in $required) { Report (Test-Path -LiteralPath (Join-Path $root $f)) $f }
 
@@ -34,8 +35,20 @@ foreach ($p in Get-ChildItem (Join-Path $root '.claude') -Recurse -Filter *.ps1)
 Write-Output '[instructions]'
 $claudeMd = Read-Utf8 (Join-Path $root 'CLAUDE.md')
 Report ($claudeMd -match '(?m)^@AGENTS\.md\s*$') 'CLAUDE.md imports @AGENTS.md'
+Report ($claudeMd -match '(?m)^@\.harness/context\.md\s*$') 'CLAUDE.md imports @.harness/context.md'
+Report ($claudeMd -match 'Codex') 'CLAUDE.md explains what Codex is'
 $agentsMd = Read-Utf8 (Join-Path $root 'AGENTS.md')
-Report ($agentsMd.IndexOf('harness-private', [StringComparison]::OrdinalIgnoreCase) -lt 0 -and $agentsMd.IndexOf('checks.md', [StringComparison]::OrdinalIgnoreCase) -lt 0) 'AGENTS.md does not reveal private checks'
+# files Codex reads must not reveal the private checks
+$codexVisible = @('AGENTS.md', 'README.md', '.harness/context.md', '.harness/templates/plan.md', '.harness/templates/review.md')
+$codexVisible += @(Get-ChildItem (Join-Path $root '.docs') -Recurse -Filter *.md -ErrorAction SilentlyContinue | ForEach-Object { Get-RelPath $root $_.FullName })
+$codexVisible += @(Get-ChildItem (Join-Path $root '.harness/tasks') -Recurse -Filter *.md -ErrorAction SilentlyContinue | ForEach-Object { Get-RelPath $root $_.FullName })
+foreach ($f in $codexVisible) {
+    $t = Read-Utf8 (Join-Path $root $f)
+    Report ($t.IndexOf('harness-private', [StringComparison]::OrdinalIgnoreCase) -lt 0 -and $t.IndexOf('checks.md', [StringComparison]::OrdinalIgnoreCase) -lt 0) "$f does not reveal private checks"
+}
+$ctxBytes = [IO.File]::ReadAllBytes((Join-Path $root '.harness/context.md')).Length
+Report ($ctxBytes -le 3072) ".harness/context.md <= 3 KB ($ctxBytes bytes)"
+Report ($agentsMd -match '\.docs/') 'AGENTS.md points to .docs/'
 Report ([Text.Encoding]::UTF8.GetByteCount($agentsMd) -lt 32768) 'AGENTS.md < 32 KiB (Codex project_doc_max_bytes default)'
 $runCodex = Read-Utf8 (Join-Path $root '.claude/tools/run-codex.ps1')
 $promptPart = ($runCodex -split '# --- codex executable ---')[1]
@@ -45,9 +58,10 @@ Write-Output '[config]'
 $cfg = $null
 try { $cfg = Get-HarnessConfig $root; Report $true 'config.json parses' } catch { Report $false "config.json parses: $_" }
 if ($cfg) {
-    foreach ($k in 'project', 'privateRoot', 'protected', 'claudeHumanOnly', 'lockedTests', 'reviewerWritable', 'codexForbiddenTokens', 'reviewerBashDeny') {
+    foreach ($k in 'project', 'privateRoot', 'protected', 'codexWritable', 'claudeHumanOnly', 'lockedTests', 'reviewerWritable', 'codexForbiddenTokens', 'noSecretPaths', 'reviewerBashDeny') {
         Report ($null -ne $cfg.PSObject.Properties[$k]) "config key: $k"
     }
+    if (-not $cfg.codexModel) { Write-Output '  WARN  codexModel empty -> global Codex default model will implement' }
     if (Test-Placeholder $cfg.project) { Write-Output "  INFO  project is a placeholder -> folder name '$(Get-ProjectName $root $cfg)' is used" }
     if (-not (@($cfg.lockedTests) | Where-Object { -not (Test-Placeholder $_) })) { Write-Output '  INFO  lockedTests not set (placeholder)' }
     Write-Output "  INFO  private dir: $(Get-PrivateDir $root $cfg $null)"
@@ -79,6 +93,10 @@ Report ($rv -match '(?m)^name:\s*reviewer\s*$') 'reviewer name'
 foreach ($sk in 'review', 'verify') {
     $t = Read-Utf8 (Join-Path $root ".claude/skills/$sk/SKILL.md")
     Report ($t -match '(?m)^context:\s*fork' -and $t -match '(?m)^agent:\s*reviewer') "skill $sk runs in reviewer (context: fork)"
+}
+foreach ($sk in 'plan', 'finalize') {
+    $t = Read-Utf8 (Join-Path $root ".claude/skills/$sk/SKILL.md")
+    Report ($t -match '(?m)^model:\s*opus\s*$') "skill $sk runs on opus"
 }
 foreach ($r in Get-ChildItem (Join-Path $root '.claude/rules') -Recurse -Filter *.md) {
     $t = Read-Utf8 $r.FullName

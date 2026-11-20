@@ -20,7 +20,8 @@ argument-hint: <id>
 3. review.md에서 제목 상태가 `FIXED`인 이슈만 대상으로:
    - `- 수정(rN):` 설명과 해당 커밋 diff를 대조하고, 필요하면 관련 테스트를 실행한다.
    - 고쳐짐 → 제목을 `VERIFIED`로, 아니면 `REOPEN`으로 바꾼다.
-   - `- 확인(rN): VERIFIED|REOPEN — <근거>` 줄을 추가한다.
+   - `- 확인(rN): VERIFIED|REOPEN — <근거>` 줄을 추가한다. (rN 번호는 review-status의 REOPEN 횟수 계산에 쓰이므로 꼭 적는다)
+   - 근거에 비공개 기준의 파일명·경로를 쓰지 않는다. K번호로만.
 4. 수정으로 생긴 새 문제는 새 이슈(`OPEN`)로 등록. 영향 받은 기준이 있으면 ③ 판정과 증거를 갱신하고 ⑤에 기록.
 5. `git add <review 경로>` → `git commit -m "review(<id>): verify rN"`
 6. `powershell -NoProfile -ExecutionPolicy Bypass -File .claude/tools/review-status.ps1 -Id <id>` 결과를 그대로 보고한다.

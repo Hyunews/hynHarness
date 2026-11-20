@@ -107,9 +107,12 @@ function Find-GlobMatch([string]$Rel, $Globs) {
 }
 
 function Invoke-Git {
-    # Runs git with UTF-8 output; returns lines. Throws on failure unless -AllowFail.
-    param([Parameter(ValueFromRemainingArguments = $true)][string[]]$GitArgs)
-    $out = & git -c core.quotepath=off -c i18n.logOutputEncoding=UTF-8 @GitArgs 2>&1
+    # Runs git with UTF-8 output; returns stdout lines. Throws on failure.
+    # Simple function (no param block) so git flags like -E are not taken as PowerShell parameters.
+    $GitArgs = @($args)
+    $prev = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
+    $out = & git -c core.quotepath=off -c i18n.logOutputEncoding=UTF-8 @GitArgs 2>$null
+    $ErrorActionPreference = $prev
     if ($LASTEXITCODE -ne 0) { throw ("git " + ($GitArgs -join ' ') + " failed: " + ($out -join "`n")) }
     return @($out | ForEach-Object { [string]$_ })
 }

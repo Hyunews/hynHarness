@@ -25,8 +25,8 @@ function Show-Paths {
 
 if ($PathsOnly) { Show-Paths; exit 0 }
 
-if (Test-Path -LiteralPath $taskDir) { Write-Error "task already exists: $taskDir (use -PathsOnly)"; exit 1 }
-if (Test-Path -LiteralPath $checks) { Write-Error "private checks already exists: $checks"; exit 1 }
+if (Test-Path -LiteralPath $taskDir) { [Console]::Error.WriteLine("task already exists: $taskDir (use -PathsOnly)"); exit 1 }
+if (Test-Path -LiteralPath $checks) { [Console]::Error.WriteLine("private checks already exists: $checks"); exit 1 }
 
 $tpl = Join-Path $root '.harness\templates'
 foreach ($pair in @(@('plan.md', $plan), @('review.md', $review), @('checks.md', $checks))) {

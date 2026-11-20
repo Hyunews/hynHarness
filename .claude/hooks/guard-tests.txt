@@ -32,6 +32,11 @@ deny  | claude | PowerShell   | reviewer | Set-Content src/app.js 'x'
 deny  | claude | Bash         | reviewer | rm -rf src
 deny  | claude | Bash         | reviewer | sed -i 's/a/b/' src/app.js
 deny  | claude | Bash         | reviewer | git checkout -- src/app.js
+allow | claude | Bash         | reviewer | git commit -m "review(001): r1 Co-Authored-By: X <x@y.z>"
+allow | claude | Bash         | reviewer | powershell -NoProfile -ExecutionPolicy Bypass -File .claude/tools/review-status.ps1 -Id 001
+deny  | claude | Bash         | reviewer | echo x > "src/app.js"
+deny  | claude | Bash         | reviewer | powershell -Command "Set-Content src/app.js x"
+deny  | claude | Bash         | reviewer | bash -c 'echo x > src/app.js'
 # reading is never blocked by the guard
 allow | claude | Read         | reviewer | {PRIVATE}\proj\001\checks.md
 

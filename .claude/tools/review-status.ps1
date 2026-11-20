@@ -59,6 +59,7 @@ if ($allPass -and $majorOpen.Count -eq 0) {
 if ($tooMany.Count -gt 0 -or $fixRounds -ge 3) {
     Write-Output ("RESULT: ESCALATE  - reopen>2: [{0}], fix rounds: {1} -> plan.md likely ambiguous, back to Opus" -f (($tooMany | ForEach-Object { $_.Id }) -join ', '), $fixRounds); exit 30
 }
-$next = if ($criteria.Count -eq 0) { '/review' } elseif ($needVerify.Count -gt 0) { '/verify' } elseif ($needFix.Count -gt 0) { 'run-codex.ps1 -Mode fix' } else { 'reviewer: criteria not all PASS but no open issue - register issues for FAIL items' }
+$filled = @($criteria | Where-Object { $_.Verdict })
+$next = if ($filled.Count -eq 0) { '/review' } elseif ($needVerify.Count -gt 0) { '/verify' } elseif ($needFix.Count -gt 0) { 'run-codex.ps1 -Mode fix' } else { 'reviewer: criteria not all PASS but no open issue - register issues for FAIL items' }
 Write-Output "RESULT: CONTINUE  - next: $next"
 exit 10

@@ -52,8 +52,14 @@ function Get-GuardDecision {
         }
         if (($ShellTools -contains $ToolName) -and $isReviewer) {
             $cmd = [string]$ToolInput.command
+            # nested shells would hide commands inside quotes -> deny outright
+            if ($cmd -match '(?i)(^|[\s;|&(])(powershell|pwsh|bash|sh|cmd)(\.exe)?\s+(-c\b|-Command\b|/c\b|-EncodedCommand\b)') {
+                return 'reviewer may not run nested shell commands (-c/-Command)'
+            }
+            # quoted text (e.g. commit messages with <email>) is replaced so it does not trigger write patterns
+            $stripped = ($cmd -replace '"[^"]*"', 'Q') -replace "'[^']*'", 'Q'
             foreach ($pat in @($Cfg.reviewerBashDeny)) {
-                if ($cmd -match $pat) { return "reviewer shell command looks like a write ($pat)" }
+                if ($stripped -match $pat) { return "reviewer shell command looks like a write ($pat)" }
             }
         }
         return $null

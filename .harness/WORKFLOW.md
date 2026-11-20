@@ -62,7 +62,14 @@ OPEN ──Codex──▶ FIXED ──Sonnet──▶ VERIFIED
 
 `.claude/rules/<project>/NN-이름.md`에 `paths:`를 붙여 추가한다. 번호: 00~60 공통 예약, 프로젝트 전용은 70 이후.
 
-## 6. Codex 도입 시 검증 체크리스트
+## 6. Claude 쪽 최초 설정 (프로젝트마다 1회)
+
+- 프로젝트 폴더에서 `claude`를 **대화형으로 한 번 실행해 trust 대화상자를 수락**한다.
+  미신뢰 상태에서는 `.claude/settings.json`의 `permissions.allow`와 `additionalDirectories`가 무시된다 (훅은 동작함 — 리허설에서 확인).
+  이 경우 reviewer가 private 루트를 Read 도구로 못 읽으므로, 임시로는 `claude --add-dir %USERPROFILE%\.harness-private`로 실행한다.
+- [ ] trust 후 `/review` 실행 시 reviewer가 checks.md를 권한 질문 없이 읽는지 확인 (`additionalDirectories`의 `~` 해석 확인 포함).
+
+## 7. Codex 도입 시 검증 체크리스트
 
 이 하네스는 Codex 실행 없이 만들어졌다. 실제 도입 전에 아래를 한 번씩 확인하고 체크한다.
 

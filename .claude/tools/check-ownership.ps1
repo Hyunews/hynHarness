@@ -52,6 +52,7 @@ foreach ($t in $targets) {
                 elseif ($d.StartsWith('+')) { [void]$added.Add($d.Substring(1)) }
             }
             foreach ($r in $removed) {
+                if ($r -match $fixLine) { continue }   # Codex may fill/rewrite its own "- 수정" lines
                 if ($r -match '^### (I-\d+) \[(BLOCKER|MAJOR|MINOR)\] (OPEN|REOPEN)\s*$') {
                     $want = '^### ' + [regex]::Escape($Matches[1]) + ' \[' + $Matches[2] + '\] FIXED\s*$'
                     $hit = $null

@@ -1,0 +1,5 @@
+# Codex 실행 로그 (열람 흔적 점검용, 저장소에는 올리지 않음)
+.harness/runs/
+# 개인 설정
+*.local.json
+.claude/settings.local.json

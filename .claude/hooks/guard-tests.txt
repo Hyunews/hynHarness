@@ -1,0 +1,53 @@
+# guard self-test cases:  expect | agent | tool | agent_type(- = main) | target
+# {PRIVATE} = private root, {ROOT} = harness root. Run: guard.ps1 -SelfTest
+
+# --- Claude main session (Opus) ---
+allow | claude | Edit         | -        | src/app.js
+allow | claude | Write        | -        | .harness/tasks/001/plan.md
+allow | claude | Edit         | -        | .claude/rules/10-workflow.md
+allow | claude | Edit         | -        | AGENTS.md
+deny  | claude | Edit         | -        | .claude/settings.json
+deny  | claude | Write        | -        | .claude/hooks/guard.ps1
+deny  | claude | Edit         | -        | {ROOT}\.claude\hooks\guard-tests.txt
+deny  | claude | Edit         | -        | .codex/hooks.json
+allow | claude | Write        | -        | {PRIVATE}\proj\001\checks.md
+allow | claude | Bash         | -        | echo x > out.txt
+
+# --- Claude reviewer (Sonnet) ---
+allow | claude | Edit         | reviewer | .harness/tasks/001/review.md
+allow | claude | Edit         | reviewer | {ROOT}\.harness\tasks\001\review.md
+deny  | claude | Edit         | reviewer | src/app.js
+deny  | claude | Write        | reviewer | .harness/tasks/001/plan.md
+deny  | claude | Edit         | reviewer | .harness/templates/review.md
+deny  | claude | Edit         | reviewer | AGENTS.md
+deny  | claude | Write        | reviewer | {PRIVATE}\proj\001\checks.md
+deny  | claude | Write        | reviewer | C:\Temp\x.txt
+deny  | claude | NotebookEdit | reviewer | nb.ipynb
+allow | claude | Bash         | reviewer | git diff HEAD~1 --stat
+allow | claude | Bash         | reviewer | git add .harness/tasks/001/review.md && git commit -m "review(001): r1"
+allow | claude | PowerShell   | reviewer | npm test 2>&1 | Select-Object -Last 20
+allow | claude | Bash         | reviewer | npm test > /dev/null
+deny  | claude | Bash         | reviewer | echo x > src/app.js
+deny  | claude | PowerShell   | reviewer | Set-Content src/app.js 'x'
+deny  | claude | Bash         | reviewer | rm -rf src
+deny  | claude | Bash         | reviewer | sed -i 's/a/b/' src/app.js
+deny  | claude | Bash         | reviewer | git checkout -- src/app.js
+# reading is never blocked by the guard
+allow | claude | Read         | reviewer | {PRIVATE}\proj\001\checks.md
+
+# --- Codex ---
+allow | codex  | apply_patch  | -        | src/app.js
+allow | codex  | apply_patch  | -        | .harness/tasks/001/review.md
+deny  | codex  | apply_patch  | -        | AGENTS.md
+deny  | codex  | apply_patch  | -        | .claude/settings.json
+deny  | codex  | apply_patch  | -        | .harness/templates/review.md
+deny  | codex  | apply_patch  | -        | .harness/tasks/001/plan.md
+deny  | codex  | apply_patch  | -        | .harness/config.json
+deny  | codex  | apply_patch  | -        | .codex/rules/harness.rules
+deny  | codex  | apply_patch  | -        | tests/locked/test_core.py
+deny  | codex  | apply_patch  | -        | ../outside.txt
+allow | codex  | Bash         | -        | npm test
+allow | codex  | Bash         | -        | cat .harness/tasks/001/plan.md
+deny  | codex  | Bash         | -        | cat {PRIVATE}\proj\001\checks.md
+deny  | codex  | Bash         | -        | type %USERPROFILE%\.harness-private\proj\001\checks.md
+deny  | codex  | Bash         | -        | Get-ChildItem -Recurse -Filter checks.md ~

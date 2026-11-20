@@ -1,0 +1,8 @@
+# Codex execpolicy rules for the harness (experimental feature; loaded only when the project is trusted).
+# Check: codex execpolicy check --pretty --rules .codex/rules/harness.rules -- git commit -m x
+
+prefix_rule(
+    pattern = ["git", ["commit", "push", "reset", "rebase", "checkout", "restore", "stash", "revert", "cherry-pick"]],
+    decision = "forbidden",
+    justification = "Commits and history changes are done by run-codex.ps1, not by Codex.",
+)

@@ -1,0 +1,39 @@
+{
+  "project": "{{project}}",
+  "privateRoot": "%USERPROFILE%\\.harness-private",
+  "codexPath": "",
+  "codexModel": "",
+  "protected": [
+    ".claude/**",
+    ".codex/**",
+    ".harness/templates/**",
+    ".harness/config.json",
+    ".harness/WORKFLOW.md",
+    ".harness/tasks/*/plan.md",
+    "AGENTS.md",
+    "CLAUDE.md",
+    ".gitignore"
+  ],
+  "claudeHumanOnly": [
+    ".claude/settings.json",
+    ".claude/hooks/**",
+    ".codex/hooks.json"
+  ],
+  "lockedTests": [
+    "{{tests/locked/**}}"
+  ],
+  "reviewerWritable": [
+    ".harness/tasks/*/review.md"
+  ],
+  "codexForbiddenTokens": [
+    "harness-private",
+    "checks.md"
+  ],
+  "reviewerBashDeny": [
+    "Set-Content|Add-Content|Out-File|New-Item|Remove-Item|Move-Item|Copy-Item|Rename-Item",
+    "(^|[\\s;|&])(rm|mv|cp|del|tee|touch)\\s",
+    "sed\\s+-i",
+    ">\\s*(?!\\$null|/dev/null|nul\\b|&)\\S",
+    "git\\s+(checkout|reset|restore|stash|rebase|merge|push|apply|cherry-pick|rm|mv)"
+  ]
+}
